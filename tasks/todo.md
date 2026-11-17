@@ -28,11 +28,11 @@
 ### Task 2: File Storage & Deterministic Naming Engine
 - **Description:** Implement `internal/storage` to handle reading, writing, and listing JSON stubs on disk, along with deterministic filename generation (`<METHOD>_<path_underscored>[_<query_hash>].json`).
 - **Acceptance criteria:**
-  - [ ] `naming.go` produces deterministic, filesystem-safe filenames for arbitrary paths and query parameters.
-  - [ ] `file_store.go` creates `.drift/stubs/` directory if absent, writes formatted JSON with 2-space indentation, and lists/loads all existing stubs.
-  - [ ] Unit tests cover special characters, query string sorting, and file read/write roundtrip.
+  - [x] `naming.go` produces deterministic, filesystem-safe filenames for arbitrary paths and query parameters.
+  - [x] `file_store.go` creates `.drift/stubs/` directory if absent, writes formatted JSON with 2-space indentation, and lists/loads all existing stubs.
+  - [x] Unit tests cover special characters, query string sorting, and file read/write roundtrip.
 - **Verification:**
-  - [ ] Tests pass: `go test -v -race ./internal/storage/...`
+  - [x] Tests pass: `go test -v ./internal/storage/...` (84.0% coverage)
 - **Dependencies:** Task 1
 - **Files likely touched:**
   - `internal/storage/naming.go`
@@ -43,8 +43,8 @@
 ---
 
 ### 🏁 Checkpoint 1: Foundation
-- [ ] `go build ./...` compiles cleanly without warnings.
-- [ ] Storage engine passes all unit tests with 100% roundtrip persistence fidelity.
+- [x] `go build ./...` compiles cleanly without warnings.
+- [x] Storage engine passes all unit tests with 100% roundtrip persistence fidelity.
 
 ---
 
