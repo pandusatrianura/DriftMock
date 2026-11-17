@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/pandusatrianura/driftmock/internal/matcher"
 	"github.com/pandusatrianura/driftmock/internal/model"
 	"github.com/pandusatrianura/driftmock/internal/sanitizer"
 	"github.com/pandusatrianura/driftmock/internal/storage"
@@ -123,7 +124,7 @@ func (rp *RecorderProxy) modifyResponse(resp *http.Response) error {
 		Request: model.RequestPattern{
 			Method:         req.Method,
 			Path:           req.URL.Path,
-			NormalizedPath: req.URL.Path, // Path normalizer will enrich in Task 6
+			NormalizedPath: matcher.CollapsePath(req.URL.Path),
 			Query:          cloneHeader(http.Header(req.URL.Query())),
 			Headers:        cloneHeader(req.Header),
 			BodyHash:       bodyHash,

@@ -120,17 +120,18 @@
 ### Task 6: Request Normalizer & Path Parameter Collapsing
 - **Description:** Implement `internal/matcher` to normalize request paths, sort query parameters, and execute heuristic regex collapsing for dynamic REST paths (`/users/123` $\rightarrow$ `/users/:id`), calculating both exact and pattern match keys.
 - **Acceptance criteria:**
-  - [ ] Heuristic correctly identifies integers, UUIDs, and MongoDB ObjectIDs in path segments and collapses them to `:id`.
-  - [ ] Query parameters are sorted deterministically regardless of URL parameter order.
-  - [ ] Two-tier matching logic: prioritizes exact match, falls back to normalized pattern match.
+  - [x] Heuristic correctly identifies integers, UUIDs, and MongoDB ObjectIDs in path segments and collapses them to `:id`.
+  - [x] Query parameters are sorted deterministically regardless of URL parameter order.
+  - [x] Two-tier matching logic: prioritizes exact match, falls back to normalized pattern match.
 - **Verification:**
-  - [ ] Table-driven unit tests pass: `go test -v -race ./internal/matcher/...`
+  - [x] Table-driven unit tests pass: `go test -v ./internal/matcher/...` (90.0% coverage)
 - **Dependencies:** Task 1
 - **Files likely touched:**
-  - `internal/matcher/normalizer.go`
   - `internal/matcher/path_collapse.go`
+  - `internal/matcher/normalizer.go`
+  - `internal/matcher/matcher.go`
   - `internal/matcher/matcher_test.go`
-- **Estimated scope:** M (3 files)
+- **Estimated scope:** M (4 files)
 
 ---
 
