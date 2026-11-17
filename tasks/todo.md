@@ -53,18 +53,19 @@
 ### Task 3: Sanitizer Pipeline (Headers & JSON Body Masking)
 - **Description:** Implement `internal/sanitizer` to redact sensitive authentication headers (`Authorization`, `Cookie`, `X-Api-Key`, etc.) and recursively traverse JSON request/response bodies to mask sensitive keys (`password`, `secret`, `token`, `nik`, etc.) with `"[REDACTED]"`.
 - **Acceptance criteria:**
-  - [ ] Header sanitizer drops or replaces auth tokens with `"[REDACTED]"`.
-  - [ ] Body masker recursively traverses nested JSON objects and arrays, masking configured sensitive keys regardless of case.
-  - [ ] Non-JSON bodies are preserved without mutation or crash.
-  - [ ] Table-driven tests verify complete redaction across various nested JSON fixtures.
+  - [x] Header sanitizer drops or replaces auth tokens with `"[REDACTED]"`.
+  - [x] Body masker recursively traverses nested JSON objects and arrays, masking configured sensitive keys regardless of case.
+  - [x] Non-JSON bodies are preserved without mutation or crash.
+  - [x] Table-driven tests verify complete redaction across various nested JSON fixtures.
 - **Verification:**
-  - [ ] Tests pass: `go test -v -race ./internal/sanitizer/...`
+  - [x] Tests pass: `go test -v ./internal/sanitizer/...` (87.7% coverage)
 - **Dependencies:** Task 1
 - **Files likely touched:**
   - `internal/sanitizer/headers.go`
   - `internal/sanitizer/body_mask.go`
+  - `internal/sanitizer/sanitizer.go`
   - `internal/sanitizer/sanitizer_test.go`
-- **Estimated scope:** M (3 files)
+- **Estimated scope:** M (4 files)
 
 ---
 
