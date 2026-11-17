@@ -91,24 +91,27 @@
 ### Task 5: `driftmock record` CLI Command
 - **Description:** Implement the `record` subcommand using Cobra, binding flags `--target` (`-t`), `--port` (`-p`), and `--out` (`-o`), starting the proxy server and outputting informative colored startup logs to the terminal.
 - **Acceptance criteria:**
-  - [ ] `driftmock record --target <url>` starts an HTTP proxy server on the specified port (default `8080`).
-  - [ ] Validates target URL scheme (`http` or `https`).
-  - [ ] Terminal displays clean startup banner showing listening port, forwarding target, and stubs directory.
-  - [ ] Handles graceful shutdown on `SIGINT` / `SIGTERM`.
+  - [x] `driftmock record --target <url>` starts an HTTP proxy server on the specified port (default `8080`).
+  - [x] Validates target URL scheme (`http` or `https`).
+  - [x] Terminal displays clean startup banner showing listening port, forwarding target, and stubs directory.
+  - [x] Handles graceful shutdown on `SIGINT` / `SIGTERM`.
 - **Verification:**
-  - [ ] CLI help displays: `go run cmd/driftmock/main.go record --help`
-  - [ ] Manual check: Start proxy against a mock HTTP server and verify generated stub in `.drift/stubs/`.
+  - [x] CLI help displays: `go run cmd/driftmock/main.go record --help`
+  - [x] End-to-end integration test passes: `go test -v ./internal/cli/...`
+  - [x] Standalone binary compiled: `go build -o bin/driftmock.exe cmd/driftmock/main.go`
 - **Dependencies:** Task 4
 - **Files likely touched:**
+  - `internal/cli/root.go`
   - `internal/cli/record.go`
+  - `internal/cli/record_test.go`
   - `cmd/driftmock/main.go`
-- **Estimated scope:** S (2 files)
+- **Estimated scope:** S (4 files)
 
 ---
 
 ### 🏁 Checkpoint 2: Record Mode Operational
-- [ ] Running `driftmock record --target <test_server>` proxies real HTTP traffic.
-- [ ] Generated stub in `.drift/stubs/` contains sanitized headers and redacted passwords.
+- [x] Running `driftmock record --target <test_server>` proxies real HTTP traffic.
+- [x] Generated stub in `.drift/stubs/` contains sanitized headers and redacted passwords.
 
 ---
 
