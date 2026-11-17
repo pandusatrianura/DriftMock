@@ -138,12 +138,12 @@
 ### Task 7: Replay Server Engine (Two-Tier Matching, CORS, Latency)
 - **Description:** Implement the offline mock HTTP server in `internal/proxy` that loads stubs from `FileStore`, matches incoming requests via `Matcher`, handles CORS preflight (`OPTIONS`), and applies latency controls (default snappy `< 5ms`, `--simulate-delay`, or `--latency <ms>`).
 - **Acceptance criteria:**
-  - [ ] Responds with recorded status code, response headers, and response body.
-  - [ ] Handles browser CORS `OPTIONS` requests automatically with permissive headers (`Access-Control-Allow-Origin: *`).
-  - [ ] Replay returns within 5ms by default; simulates recorded delay if `--simulate-delay` is enabled; enforces fixed delay if `--latency` is provided.
-  - [ ] Returns structured `404 Not Found` JSON with diagnostics when no stub matches.
+  - [x] Responds with recorded status code, response headers, and response body.
+  - [x] Handles browser CORS `OPTIONS` requests automatically with permissive headers (`Access-Control-Allow-Origin: *`).
+  - [x] Replay returns within 5ms by default; simulates recorded delay if `--simulate-delay` is enabled; enforces fixed delay if `--latency` is provided.
+  - [x] Returns structured `404 Not Found` JSON with diagnostics when no stub matches.
 - **Verification:**
-  - [ ] Integration tests pass: `go test -v -race ./internal/proxy/ -run TestReplay`
+  - [x] Integration tests pass: `go test -v ./internal/proxy/ -run TestReplay` (86.0% coverage)
 - **Dependencies:** Task 2, Task 6
 - **Files likely touched:**
   - `internal/proxy/replayer.go`
