@@ -72,13 +72,13 @@
 ### Task 4: Reverse Proxy & Traffic Recording Interceptor
 - **Description:** Implement `internal/proxy` utilizing `net/http/httputil.ReverseProxy` to forward incoming client requests to the target staging server, intercept responses, decompress gzip/deflate if present, measure round-trip latency, execute sanitizer, and persist stubs to FileStore.
 - **Acceptance criteria:**
-  - [ ] Proxy directs requests accurately to the target host while rewriting the `Host` header.
-  - [ ] Transparently decompresses gzip responses so stored JSON remains human-readable.
-  - [ ] Measures response latency accurately in milliseconds (`latency_ms`).
-  - [ ] Dispatches sanitized `Stub` to `FileStore` asynchronously or synchronously without delaying client response.
-  - [ ] Returns `502 Bad Gateway` if target staging is unreachable.
+  - [x] Proxy directs requests accurately to the target host while rewriting the `Host` header.
+  - [x] Transparently decompresses gzip responses so stored JSON remains human-readable.
+  - [x] Measures response latency accurately in milliseconds (`latency_ms`).
+  - [x] Dispatches sanitized `Stub` to `FileStore` asynchronously or synchronously without delaying client response.
+  - [x] Returns `502 Bad Gateway` if target staging is unreachable.
 - **Verification:**
-  - [ ] Integration tests pass using `httptest.Server`: `go test -v -race ./internal/proxy/...`
+  - [x] Integration tests pass using `httptest.Server`: `go test -v ./internal/proxy/...` (87.7% coverage)
 - **Dependencies:** Task 2, Task 3
 - **Files likely touched:**
   - `internal/proxy/recorder.go`
