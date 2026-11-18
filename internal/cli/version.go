@@ -13,7 +13,7 @@ import (
 
 var (
 	// Version holds the semantic version of DriftMock (can be injected via -ldflags).
-	Version = "v0.1.0-dev"
+	Version = "v1.0.0"
 
 	// Commit holds the git commit hash (can be injected via -ldflags).
 	Commit = "none"
