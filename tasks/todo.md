@@ -156,24 +156,25 @@
 ### Task 8: `driftmock replay` CLI Command
 - **Description:** Implement the `replay` subcommand in Cobra with flags `--stubs` (`-s`), `--port` (`-p`), `--simulate-delay`, and `--latency`.
 - **Acceptance criteria:**
-  - [ ] `driftmock replay --stubs ./.drift` loads all stubs from disk and starts mock server on port 8080.
-  - [ ] Prints registered routes summary in terminal upon startup.
-  - [ ] Flags `--simulate-delay` and `--latency` correctly configure delay behavior.
-  - [ ] Handles graceful shutdown on `SIGINT` / `SIGTERM`.
+  - [x] `driftmock replay --stubs ./.drift` loads all stubs from disk and starts mock server on port 8080.
+  - [x] Prints registered routes summary in terminal upon startup.
+  - [x] Flags `--simulate-delay` and `--latency` correctly configure delay behavior.
+  - [x] Handles graceful shutdown on `SIGINT` / `SIGTERM`.
 - **Verification:**
-  - [ ] CLI help displays: `go run cmd/driftmock/main.go replay --help`
-  - [ ] Test replay with `curl` or `net/http` client without internet connection.
+  - [x] CLI help displays: `go run cmd/driftmock/main.go replay --help`
+  - [x] Integration test passes: `go test -v ./internal/cli/ -run TestRunReplay_EndToEnd`
+  - [x] Standalone binary updated: `go build -o bin/driftmock.exe cmd/driftmock/main.go`
 - **Dependencies:** Task 7
 - **Files likely touched:**
   - `internal/cli/replay.go`
-  - `internal/cli/root.go`
+  - `internal/cli/replay_test.go`
 - **Estimated scope:** S (2 files)
 
 ---
 
 ### 🏁 Checkpoint 3: Replay Mode Operational
-- [ ] Offline replay server starts up and responds to both exact and parameterized routes (`/users/99` matches `:id`).
-- [ ] Latency flags function as expected.
+- [x] Offline replay server starts up and responds to both exact and parameterized routes (`/users/99` matches `:id`).
+- [x] Latency flags function as expected.
 
 ---
 
