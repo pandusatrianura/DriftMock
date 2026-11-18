@@ -245,18 +245,20 @@
 ### Task 12: Root CLI, Version Command, and Global Flags
 - **Description:** Assemble the complete Cobra CLI application in `cmd/driftmock` and `internal/cli/root.go`, wire all subcommands (`record`, `replay`, `check`, `version`), support global `--verbose` flag, and implement `driftmock version` with build metadata.
 - **Acceptance criteria:**
-  - [ ] `driftmock --help` lists all subcommands and global options cleanly.
-  - [ ] `driftmock version` prints version, commit hash, and Go runtime version.
-  - [ ] Global flags (`--verbose`, `--help`) work consistently across all subcommands.
+  - [x] `driftmock --help` lists all subcommands and global options cleanly.
+  - [x] `driftmock version` prints version, commit hash, and Go runtime version.
+  - [x] Global flags (`--verbose`, `--help`) work consistently across all subcommands.
 - **Verification:**
-  - [ ] `go run cmd/driftmock/main.go --help` displays expected help menu.
-  - [ ] `go run cmd/driftmock/main.go version` displays build info.
+  - [x] `go run cmd/driftmock/main.go --help` displays expected help menu.
+  - [x] `go run cmd/driftmock/main.go version` displays build info (plain text & JSON).
+  - [x] `go test -v ./internal/cli/ -run TestVersion` passes.
 - **Dependencies:** Task 5, Task 8, Task 11
 - **Files likely touched:**
   - `cmd/driftmock/main.go`
   - `internal/cli/root.go`
   - `internal/cli/version.go`
-- **Estimated scope:** S (3 files)
+  - `internal/cli/version_test.go`
+- **Estimated scope:** S (4 files)
 
 ---
 

@@ -13,15 +13,17 @@ var (
 
 // RootCmd represents the base command when called without any subcommands.
 var RootCmd = &cobra.Command{
-	Use:   "driftmock",
-	Short: "Zero-effort live traffic recording, instant offline API mocking, and contract drift detection.",
+	Use:     "driftmock",
+	Version: Version,
+	Short:   "Zero-effort live traffic recording, instant offline API mocking, and contract drift detection.",
 	Long: `DriftMock is a high-performance transparent reverse proxy between client applications
 (frontend web, mobile apps, QA test runner) and backend staging/development environments.
 
 Modes:
   record  - Intercept live staging traffic, sanitize secrets, and generate Git-committable JSON mock stubs.
   replay  - Serve recorded stubs offline with deterministic matching and simulated latency.
-  check   - Re-request staging endpoints and detect breaking API contract changes using semantic JSON diff.`,
+  check   - Re-request staging endpoints and detect breaking API contract changes using semantic JSON diff.
+  version - Display version, commit, and build information.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
