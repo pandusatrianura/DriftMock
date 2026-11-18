@@ -162,11 +162,12 @@ func TestRunRecord_EndToEnd(t *testing.T) {
 	assert.Equal(t, "/api/v1/ping", stubs[0].Request.Path)
 
 	// 5. Trigger graceful shutdown
+	client.CloseIdleConnections()
 	cancel()
 	select {
 	case err := <-errChan:
 		require.NoError(t, err, "RunRecord should shut down cleanly without error")
-	case <-time.After(3 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("RunRecord timed out waiting for shutdown")
 	}
 

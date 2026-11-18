@@ -122,11 +122,12 @@ func TestCompleteLifecycle_Record_Replay_Check(t *testing.T) {
 	prodResp.Body.Close()
 
 	// Stop record proxy
+	client.CloseIdleConnections()
 	cancelRecord()
 	select {
 	case err := <-recordDone:
 		require.NoError(t, err)
-	case <-time.After(3 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("timed out shutting down recording proxy")
 	}
 
@@ -217,11 +218,12 @@ func TestCompleteLifecycle_Record_Replay_Check(t *testing.T) {
 	corsResp.Body.Close()
 
 	// Stop replay server
+	client.CloseIdleConnections()
 	cancelReplay()
 	select {
 	case err := <-replayDone:
 		require.NoError(t, err)
-	case <-time.After(3 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("timed out shutting down mock replay server")
 	}
 

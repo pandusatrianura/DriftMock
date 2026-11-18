@@ -223,6 +223,7 @@ func RunReplay(ctx context.Context, opts ReplayCommandOptions, out io.Writer) er
 	case err := <-serverErrChan:
 		return fmt.Errorf("mock server error: %w", err)
 	case <-ctx.Done():
+		server.SetKeepAlivesEnabled(false)
 		if logger.IsJSON() {
 			slog.Info("shutting down mock server gracefully")
 		} else {

@@ -192,6 +192,7 @@ func RunRecord(ctx context.Context, opts RecordOptions, out io.Writer) error {
 	case err := <-serverErrChan:
 		return fmt.Errorf("proxy server error: %w", err)
 	case <-ctx.Done():
+		server.SetKeepAlivesEnabled(false)
 		if logger.IsJSON() {
 			slog.Info("shutting down recording proxy gracefully")
 		} else {

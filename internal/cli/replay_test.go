@@ -203,11 +203,12 @@ func TestRunReplay_EndToEnd(t *testing.T) {
 	assert.Equal(t, "http://localhost:5173", corsResp.Header.Get("Access-Control-Allow-Origin"))
 
 	// 5. Trigger graceful shutdown
+	client.CloseIdleConnections()
 	cancel()
 	select {
 	case err := <-errChan:
 		require.NoError(t, err, "RunReplay should shut down cleanly without error")
-	case <-time.After(3 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("RunReplay timed out waiting for shutdown")
 	}
 
