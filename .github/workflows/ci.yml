@@ -10,6 +10,9 @@ jobs:
   test:
     name: Test & Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
