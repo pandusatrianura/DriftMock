@@ -121,8 +121,8 @@ func TestRecorderProxy_Sanitization(t *testing.T) {
 	proxyServer := httptest.NewServer(recorder)
 	defer proxyServer.Close()
 
-	// 2. Client sends request with sensitive headers
-	req, err := http.NewRequest("GET", proxyServer.URL+"/api/v1/profile", nil)
+	// 2. Client sends request with sensitive headers and query params
+	req, err := http.NewRequest("GET", proxyServer.URL+"/api/v1/profile?token=query_secret_token&page=2", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer secret_jwt_123")
 	req.Header.Set("Cookie", "tracking_id=12345")
@@ -139,6 +139,8 @@ func TestRecorderProxy_Sanitization(t *testing.T) {
 	require.NotNil(t, savedStub)
 	assert.Equal(t, []string{"[REDACTED]"}, savedStub.Request.Headers["Authorization"])
 	assert.Equal(t, []string{"[REDACTED]"}, savedStub.Request.Headers["Cookie"])
+	assert.Equal(t, []string{"[REDACTED]"}, savedStub.Request.Query["token"])
+	assert.Equal(t, []string{"2"}, savedStub.Request.Query["page"])
 	assert.Equal(t, []string{"[REDACTED]"}, savedStub.Response.Headers["Set-Cookie"])
 
 	bodyMap := savedStub.Response.Body.(map[string]any)
@@ -255,5 +257,37 @@ func TestRecorderProxy_TargetOffline_BadGateway(t *testing.T) {
 
 	stubs, err := store.List()
 	require.NoError(t, err)
-	assert.Empty(t, stubs, "no stub should be saved when target is offline")
+	assert.Empty(t, stubs)
+}
+
+func TestRecorderProxy_MaxBodyLimit(t *testing.T) {
+	targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status": "ok"}`))
+	}))
+	defer targetServer.Close()
+
+	tempDir := t.TempDir()
+	store, _ := storage.NewFileStore(tempDir)
+	targetURL, _ := url.Parse(targetServer.URL)
+
+	var savedStub *model.Stub
+	recorder, err := proxy.NewRecorderProxy(targetURL, store, nil)
+	require.NoError(t, err)
+	recorder.OnStubSaved = func(s *model.Stub, path string) {
+		savedStub = s
+	}
+
+	proxyServer := httptest.NewServer(recorder)
+	defer proxyServer.Close()
+
+	// Send request with body
+	resp, err := proxyServer.Client().Post(proxyServer.URL+"/api/v1/test", "application/json", bytes.NewBufferString(`{"test":"data"}`))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	require.NotNil(t, savedStub)
+	assert.NotEmpty(t, savedStub.Request.BodyHash)
 }

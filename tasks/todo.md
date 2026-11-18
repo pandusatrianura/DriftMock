@@ -284,3 +284,102 @@
 - [x] Single binary compiles cleanly: `go build -o bin/driftmock.exe cmd/driftmock/main.go`.
 - [x] `go test ./...` passes 100% of unit and integration tests with >80% coverage (83.0%).
 - [x] Binary size is under 25MB (11.18 MB) with zero external runtime dependencies.
+
+---
+
+## Phase 6: Production Hardening (Phase 1 & Phase 2 Fixes)
+
+### Task 14: Deterministic Map Key Sorting in Diff Engine
+- **Description:** Fix non-deterministic map iteration in `internal/diff/differ.go`. Sort object keys alphabetically when inspecting expected and received JSON objects so that diffs are evaluated in deterministic order across runs, eliminating test flakiness in `TestDiffer_TypeMismatchIsBreaking`.
+- **Acceptance criteria:**
+  - [x] `diffRecursive` extracts and sorts map keys alphabetically before iterating for missing fields and additions.
+  - [x] Diff items are returned in consistent, deterministic alphabetical order.
+  - [x] `go test -v ./internal/diff/...` passes consistently on repeated runs without failure.
+- **Verification:**
+  - [x] Unit tests pass repeatedly: `go test -v -count=5 ./internal/diff/...`
+- **Dependencies:** None
+- **Files likely touched:**
+  - `internal/diff/differ.go`
+  - `internal/diff/differ_test.go`
+- **Estimated scope:** S (2 files)
+
+---
+
+### Task 15: Sensitive Query Parameter Redaction in Sanitizer, Naming & Recorder
+- **Description:** Prevent leaking secrets in URL query parameters. Implement `SanitizeQueryParams` in `internal/sanitizer`, integrate it into `Pipeline.SanitizeRequest` and `Pipeline.SanitizeStub`, and ensure `storage.HashQueryParams` or `storage.GenerateStubID` hashes sanitized parameters rather than raw secrets.
+- **Acceptance criteria:**
+  - [x] `internal/sanitizer` redacts sensitive query keys (`token`, `api_key`, `secret`, `password`, `key`, `client_secret`, etc.) with `"[REDACTED]"`.
+  - [x] `stub.Request.Query` values for sensitive keys are sanitized in stored stubs.
+  - [x] Naming engine hashes sanitized query parameters, avoiding secret leaks in filenames.
+  - [x] Unit tests verify query parameter redaction for sensitive keys while preserving non-sensitive parameters.
+- **Verification:**
+  - [x] Unit tests pass: `go test -v ./internal/sanitizer/... ./internal/storage/...`
+- **Dependencies:** None
+- **Files likely touched:**
+  - `internal/sanitizer/query.go`
+  - `internal/sanitizer/sanitizer.go`
+  - `internal/sanitizer/sanitizer_test.go`
+  - `internal/proxy/recorder.go`
+  - `internal/proxy/recorder_test.go`
+- **Estimated scope:** M (3-4 files)
+
+---
+
+### Task 16: Path Traversal Protection & Atomic File Persistence in Storage
+- **Description:** Harden `internal/storage/file_store.go` against path traversal attacks in `Load(idOrFilename)` and `Save(stub)`, and implement atomic file writes using a temporary file and atomic rename (`os.Rename`) to guarantee zero file corruption on unexpected termination.
+- **Acceptance criteria:**
+  - [x] `FileStore.Load` sanitizes inputs and blocks directory traversal attempts (e.g., `../../etc/passwd`), returning an explicit error.
+  - [x] `FileStore.Save` strips directory components from `stub.ID` and writes via atomic temporary file + rename.
+  - [x] Unit tests verify path traversal rejection and atomic write behavior.
+- **Verification:**
+  - [x] Unit tests pass: `go test -v ./internal/storage/...`
+- **Dependencies:** None
+- **Files likely touched:**
+  - `internal/storage/file_store.go`
+  - `internal/storage/file_store_test.go`
+- **Estimated scope:** S (2 files)
+
+---
+
+### Task 17: Request & Response Body Size Limits (DoS / Memory Exhaustion Protection)
+- **Description:** Guard reverse proxy recorder and replayer against memory exhaustion (OOM) by enforcing safe maximum payload size limits (e.g. 10MB) via `io.LimitReader` when reading request and response bodies.
+- **Acceptance criteria:**
+  - [x] `RecorderProxy` limits request body reading and upstream response body reading to `DefaultMaxBodyBytes` (10MB).
+  - [x] `Replayer` limits incoming client request body reading to `DefaultMaxBodyBytes`.
+  - [x] Payloads exceeding limits are safely handled without server crash or unbounded memory allocation.
+  - [x] Unit tests verify boundary behavior with oversized payloads.
+- **Verification:**
+  - [x] Unit tests pass: `go test -v ./internal/proxy/...`
+- **Dependencies:** None
+- **Files likely touched:**
+  - `internal/proxy/recorder.go`
+  - `internal/proxy/replayer.go`
+  - `internal/proxy/recorder_test.go`
+- **Estimated scope:** S (3 files)
+
+---
+
+### Task 18: Regression Verification & Complete Test Suite Validation
+- **Description:** Run full test suite across all packages (`./...`), verify 100% pass rate, confirm test coverage meets or exceeds 80%, and verify end-to-end integration lifecycle.
+- **Acceptance criteria:**
+  - [x] All unit and integration tests in all packages pass: `go test -v ./...`.
+  - [x] End-to-end integration test passes: `go test -v ./tests/e2e/...`.
+  - [x] Total statement test coverage exceeds 80%.
+  - [x] `go vet ./...` reports zero issues.
+- **Verification:**
+  - [x] `go test -v ./...`
+  - [x] `go vet ./...`
+- **Dependencies:** Task 14, Task 15, Task 16, Task 17
+- **Files likely touched:**
+  - `tasks/todo.md`
+- **Estimated scope:** S (1 file)
+
+---
+
+### 🏁 Checkpoint 6: Production Hardened
+- [x] Deterministic diffing eliminates test flakiness.
+- [x] Query parameter secrets are redacted before persistence.
+- [x] Storage is protected against path traversal and atomic persistence prevents file corruption.
+- [x] Proxy is protected against memory exhaustion from oversized payloads.
+- [x] 100% of tests pass across all packages.
+

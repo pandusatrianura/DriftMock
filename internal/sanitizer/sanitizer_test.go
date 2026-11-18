@@ -211,3 +211,38 @@ func TestPipelineSanitizeRawResponseBody(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, emptySanitized)
 }
+
+func TestSanitizeQueryParams(t *testing.T) {
+	query := map[string][]string{
+		"token":         {"secret_jwt_token_123"},
+		"api_key":       {"my-api-key-99"},
+		"client_secret": {"very_confidential"},
+		"password":      {"p@ssword"},
+		"page":          {"1"},
+		"limit":         {"20"},
+		"q":             {"golang reverse proxy"},
+	}
+
+	sanitized := sanitizer.SanitizeQueryParams(query, nil)
+
+	assert.Equal(t, []string{"[REDACTED]"}, sanitized["token"])
+	assert.Equal(t, []string{"[REDACTED]"}, sanitized["api_key"])
+	assert.Equal(t, []string{"[REDACTED]"}, sanitized["client_secret"])
+	assert.Equal(t, []string{"[REDACTED]"}, sanitized["password"])
+
+	// Non-sensitive query parameters preserved
+	assert.Equal(t, []string{"1"}, sanitized["page"])
+	assert.Equal(t, []string{"20"}, sanitized["limit"])
+	assert.Equal(t, []string{"golang reverse proxy"}, sanitized["q"])
+}
+
+func TestSanitizeURLValues(t *testing.T) {
+	v := map[string][]string{
+		"token": {"abc123xyz"},
+		"view":  {"summary"},
+	}
+
+	sanitized := sanitizer.SanitizeURLValues(v, nil)
+	assert.Equal(t, "[REDACTED]", sanitized.Get("token"))
+	assert.Equal(t, "summary", sanitized.Get("view"))
+}

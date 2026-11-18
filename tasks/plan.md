@@ -114,6 +114,14 @@ DriftMock is a high-performance, single-binary Go CLI tool acting as a local-fir
 - **Task 13:** Implement Comprehensive End-to-End Integration Tests (`tests/e2e/`).
 - **Checkpoint 5:** Complete E2E cycle succeeds, `go test -race ./...` passes with >80% coverage, and binary compiles cleanly.
 
+### Phase 6: Production Hardening (Phase 1 & Phase 2 Fixes)
+- **Task 14:** Deterministic Map Key Sorting in Diff Engine & Test Stability (`internal/diff/differ.go`).
+- **Task 15:** Sensitive Query Parameter Redaction in Sanitizer, Naming & Recorder (`internal/sanitizer`, `internal/storage`, `internal/proxy`).
+- **Task 16:** Path Traversal Protection & Atomic File Persistence in Storage (`internal/storage/file_store.go`).
+- **Task 17:** Request & Response Body Size Limits (DoS / Memory Exhaustion Protection) (`internal/proxy`).
+- **Task 18:** Regression Verification & Complete Test Suite Validation (`tests/e2e/`, unit tests).
+- **Checkpoint 6:** 100% of test suite passes reliably, all security, storage, and determinism hardening verified.
+
 ---
 
 ## 5. Risks and Mitigations

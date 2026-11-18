@@ -50,7 +50,44 @@ func (s *FileStore) StubsDir() string {
 	return s.stubsDir
 }
 
-// Save serializes and persists a Stub to disk. If stub.ID is empty, it generates one.
+// resolveStubPath sanitizes an ID or filename and ensures the resulting path is strictly inside stubsDir.
+func (s *FileStore) resolveStubPath(idOrFilename string) (string, error) {
+	cleanID := strings.TrimSpace(idOrFilename)
+	if cleanID == "" {
+		return "", fmt.Errorf("stub ID or filename cannot be empty")
+	}
+
+	// Reject directory traversal characters explicitly
+	if strings.Contains(cleanID, "..") || strings.ContainsAny(cleanID, `/\`) {
+		return "", fmt.Errorf("invalid stub ID '%s': directory traversal is not permitted", idOrFilename)
+	}
+
+	base := filepath.Base(cleanID)
+	filename := base
+	if !strings.HasSuffix(filename, ".json") {
+		filename += ".json"
+	}
+
+	targetPath := filepath.Join(s.stubsDir, filename)
+	absTarget, err := filepath.Abs(targetPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve absolute path: %w", err)
+	}
+
+	absStubsDir, err := filepath.Abs(s.stubsDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve stubs directory: %w", err)
+	}
+
+	rel, err := filepath.Rel(absStubsDir, absTarget)
+	if err != nil || strings.HasPrefix(rel, "..") || rel == "." {
+		return "", fmt.Errorf("invalid stub path '%s': attempted path traversal outside stubs directory", idOrFilename)
+	}
+
+	return targetPath, nil
+}
+
+// Save serializes and persists a Stub to disk atomically. If stub.ID is empty, it generates one.
 // Returns the written file path.
 func (s *FileStore) Save(stub *model.Stub) (string, error) {
 	if stub == nil {
@@ -65,12 +102,10 @@ func (s *FileStore) Save(stub *model.Stub) (string, error) {
 		stub.ID = GenerateStubID(stub.Request.Method, stub.Request.Path, queryValues)
 	}
 
-	filename := stub.ID
-	if !strings.HasSuffix(filename, ".json") {
-		filename += ".json"
+	targetPath, err := s.resolveStubPath(stub.ID)
+	if err != nil {
+		return "", fmt.Errorf("invalid stub identifier: %w", err)
 	}
-
-	targetPath := filepath.Join(s.stubsDir, filename)
 
 	data, err := json.MarshalIndent(stub, "", "  ")
 	if err != nil {
@@ -80,8 +115,27 @@ func (s *FileStore) Save(stub *model.Stub) (string, error) {
 	// Append newline at end of file for POSIX/Git compatibility
 	data = append(data, '\n')
 
-	if err := os.WriteFile(targetPath, data, 0644); err != nil {
-		return "", fmt.Errorf("failed to write stub file '%s': %w", targetPath, err)
+	// Atomic persistence: write to a temporary file in stubsDir, then atomically rename
+	tmpFile, err := os.CreateTemp(s.stubsDir, ".stub-*.tmp")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temporary stub file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+
+	if _, err := tmpFile.Write(data); err != nil {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpPath)
+		return "", fmt.Errorf("failed to write to temporary stub file: %w", err)
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		return "", fmt.Errorf("failed to close temporary stub file: %w", err)
+	}
+
+	if err := os.Rename(tmpPath, targetPath); err != nil {
+		_ = os.Remove(tmpPath)
+		return "", fmt.Errorf("failed to atomically commit stub file '%s': %w", targetPath, err)
 	}
 
 	return targetPath, nil
@@ -92,12 +146,10 @@ func (s *FileStore) Load(idOrFilename string) (*model.Stub, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	filename := idOrFilename
-	if !strings.HasSuffix(filename, ".json") {
-		filename += ".json"
+	targetPath, err := s.resolveStubPath(idOrFilename)
+	if err != nil {
+		return nil, err
 	}
-
-	targetPath := filepath.Join(s.stubsDir, filename)
 
 	data, err := os.ReadFile(targetPath)
 	if err != nil {
@@ -127,7 +179,7 @@ func (s *FileStore) List() ([]*model.Stub, error) {
 
 	stubs := make([]*model.Stub, 0, len(entries))
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") || !strings.HasSuffix(entry.Name(), ".json") {
 			continue
 		}
 

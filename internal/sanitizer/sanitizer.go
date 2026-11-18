@@ -32,12 +32,13 @@ func (p *Pipeline) WithCustomSensitiveKey(key string) *Pipeline {
 	return p
 }
 
-// SanitizeRequest sanitizes headers and body in a RequestPattern in place.
+// SanitizeRequest sanitizes headers and query parameters in a RequestPattern in place.
 func (p *Pipeline) SanitizeRequest(req *model.RequestPattern) {
 	if req == nil {
 		return
 	}
 	req.Headers = SanitizeHeaders(req.Headers, p.sensitiveHeaders)
+	req.Query = SanitizeQueryParams(req.Query, p.sensitiveKeys)
 }
 
 // SanitizeResponse sanitizes headers and body in a ResponsePattern in place.

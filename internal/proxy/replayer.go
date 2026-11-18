@@ -79,10 +79,10 @@ func (rp *Replayer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Read request body if present
+	// 2. Read request body if present, bounded by DefaultMaxBodyBytes
 	var bodyBytes []byte
 	if r.Body != nil {
-		bodyBytes, _ = io.ReadAll(r.Body)
+		bodyBytes, _ = io.ReadAll(io.LimitReader(r.Body, DefaultMaxBodyBytes))
 		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 	}
 

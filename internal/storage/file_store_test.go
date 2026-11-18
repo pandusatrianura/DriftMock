@@ -212,3 +212,79 @@ func TestFileStoreConcurrentAccess(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, workerCount, len(allStubs))
 }
+
+func TestFileStore_PathTraversalProtection(t *testing.T) {
+	tempDir := t.TempDir()
+	store, err := storage.NewFileStore(tempDir)
+	require.NoError(t, err)
+
+	// Attempts to traverse paths in Load
+	maliciousPaths := []string{
+		"../../etc/passwd",
+		"..\\..\\windows\\system32\\cmd.exe",
+		"../stubs",
+		"sub/folder/stub",
+		"/absolute/path",
+		"",
+	}
+
+	for _, malPath := range maliciousPaths {
+		t.Run("load_"+malPath, func(t *testing.T) {
+			_, err := store.Load(malPath)
+			assert.Error(t, err, "path traversal should be rejected for %s", malPath)
+		})
+	}
+
+	// Attempts to traverse paths in Save
+	maliciousStub := &model.Stub{
+		Version: "1.0",
+		ID:      "../../malicious_stub",
+		Request: model.RequestPattern{
+			Method: "GET",
+			Path:   "/test",
+		},
+	}
+	_, err = store.Save(maliciousStub)
+	assert.Error(t, err, "saving a stub with directory traversal ID should be rejected")
+}
+
+func TestFileStore_AtomicPersistence(t *testing.T) {
+	tempDir := t.TempDir()
+	store, err := storage.NewFileStore(tempDir)
+	require.NoError(t, err)
+
+	stub := &model.Stub{
+		Version: "1.0",
+		ID:      "GET_atomic_test",
+		Request: model.RequestPattern{
+			Method: "GET",
+			Path:   "/atomic",
+		},
+		Response: model.ResponsePattern{
+			StatusCode: 200,
+			Body:       map[string]any{"data": "initial"},
+		},
+	}
+
+	// 1. Initial save
+	savedPath, err := store.Save(stub)
+	require.NoError(t, err)
+	assert.FileExists(t, savedPath)
+
+	// Verify no tmp files remain
+	entries, err := os.ReadDir(store.StubsDir())
+	require.NoError(t, err)
+	for _, entry := range entries {
+		assert.False(t, filepath.Ext(entry.Name()) == ".tmp", "temp file should be removed or renamed")
+	}
+
+	// 2. Overwrite atomically
+	stub.Response.Body = map[string]any{"data": "updated"}
+	_, err = store.Save(stub)
+	require.NoError(t, err)
+
+	loaded, err := store.Load("GET_atomic_test")
+	require.NoError(t, err)
+	bodyMap := loaded.Response.Body.(map[string]any)
+	assert.Equal(t, "updated", bodyMap["data"])
+}

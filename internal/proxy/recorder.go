@@ -17,6 +17,9 @@ import (
 	"github.com/pandusatrianura/driftmock/internal/storage"
 )
 
+// DefaultMaxBodyBytes limits request and response buffering to 10MB to prevent OOM/DoS.
+const DefaultMaxBodyBytes = 10 * 1024 * 1024
+
 // RecorderProxy acts as an HTTP reverse proxy that intercepts, sanitizes,
 // and persists request-response pairs as JSON stubs.
 type RecorderProxy struct {
@@ -24,6 +27,7 @@ type RecorderProxy struct {
 	store        storage.Store
 	sanitizer    *sanitizer.Pipeline
 	reverseProxy *httputil.ReverseProxy
+	maxBodyBytes int64
 	OnStubSaved  func(stub *model.Stub, filePath string)
 	OnError      func(err error)
 }
@@ -41,9 +45,10 @@ func NewRecorderProxy(target *url.URL, store storage.Store, pipeline *sanitizer.
 	}
 
 	rp := &RecorderProxy{
-		targetURL: target,
-		store:     store,
-		sanitizer: pipeline,
+		targetURL:    target,
+		store:        store,
+		sanitizer:    pipeline,
+		maxBodyBytes: DefaultMaxBodyBytes,
 	}
 
 	proxy := &httputil.ReverseProxy{
@@ -70,10 +75,10 @@ func (rp *RecorderProxy) director(req *http.Request) {
 	// Record start timestamp for latency measurement
 	ctx := withStartTime(req.Context(), time.Now())
 
-	// Read and buffer request body if present
+	// Read and buffer request body if present, bounded by maxBodyBytes
 	var bodyBytes []byte
 	if req.Body != nil {
-		bodyBytes, _ = io.ReadAll(req.Body)
+		bodyBytes, _ = io.ReadAll(io.LimitReader(req.Body, rp.maxBodyBytes))
 		req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 	}
 
@@ -90,8 +95,8 @@ func (rp *RecorderProxy) modifyResponse(resp *http.Response) error {
 		latencyMs = time.Since(startTime).Milliseconds()
 	}
 
-	// Read raw response body bytes
-	rawBody, err := io.ReadAll(resp.Body)
+	// Read raw response body bytes, bounded by maxBodyBytes
+	rawBody, err := io.ReadAll(io.LimitReader(resp.Body, rp.maxBodyBytes))
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}

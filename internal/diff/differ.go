@@ -3,6 +3,7 @@ package diff
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/pandusatrianura/driftmock/internal/model"
@@ -163,12 +164,20 @@ func (d *Differ) diffRecursive(currentPath string, expected, received any, items
 		expMap := expected.(map[string]any)
 		recMap := received.(map[string]any)
 
+		// Collect and sort expected keys for deterministic comparison order
+		expKeys := make([]string, 0, len(expMap))
+		for k := range expMap {
+			expKeys = append(expKeys, k)
+		}
+		sort.Strings(expKeys)
+
 		// Check for missing fields in received
-		for k, expVal := range expMap {
+		for _, k := range expKeys {
 			if d.shouldIgnore(k) {
 				continue
 			}
 
+			expVal := expMap[k]
 			childPath := BuildFieldPath(currentPath, k)
 			recVal, exists := recMap[k]
 			if !exists {
@@ -183,13 +192,21 @@ func (d *Differ) diffRecursive(currentPath string, expected, received any, items
 			}
 		}
 
+		// Collect and sort received keys to deterministically find newly added fields
+		recKeys := make([]string, 0, len(recMap))
+		for k := range recMap {
+			recKeys = append(recKeys, k)
+		}
+		sort.Strings(recKeys)
+
 		// Check for newly added fields in received
-		for k, recVal := range recMap {
+		for _, k := range recKeys {
 			if d.shouldIgnore(k) {
 				continue
 			}
 
 			if _, exists := expMap[k]; !exists {
+				recVal := recMap[k]
 				childPath := BuildFieldPath(currentPath, k)
 				*items = append(*items, NewAdditionDiff(
 					childPath,
