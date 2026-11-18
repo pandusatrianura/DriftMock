@@ -218,24 +218,25 @@
 ### Task 11: `driftmock check` CLI Command & HTTP Runner
 - **Description:** Implement the `check` subcommand in Cobra with flags `--stubs` (`-s`), `--target` (`-t`), and `--strict`. Re-executes HTTP requests against live target using recorded concrete paths and runs semantic diff.
 - **Acceptance criteria:**
-  - [ ] Iterates through all recorded stubs, sending requests to the live target with stored headers and query parameters.
-  - [ ] Compares live response against baseline stub using `internal/diff`.
-  - [ ] Returns exit code `0` if all endpoints are compatible or only have non-breaking additions.
-  - [ ] Returns exit code `1` if breaking changes are detected when `--strict` is enabled (CI/CD gate).
+  - [x] Iterates through all recorded stubs, sending requests to the live target with stored headers and query parameters.
+  - [x] Compares live response against baseline stub using `internal/diff`.
+  - [x] Returns exit code `0` if all endpoints are compatible or only have non-breaking additions.
+  - [x] Returns exit code `1` if breaking changes are detected when `--strict` is enabled (CI/CD gate).
 - **Verification:**
-  - [ ] Integration tests pass: `go test -v -race ./internal/cli/ -run TestCheck`
+  - [x] Integration tests pass: `go test -v ./internal/cli/ -run TestRunCheck`
+  - [x] Standalone binary updated: `go build -o bin/driftmock.exe cmd/driftmock/main.go`
 - **Dependencies:** Task 10
 - **Files likely touched:**
-  - `internal/cli/check.go`
   - `internal/diff/runner.go`
+  - `internal/cli/check.go`
   - `internal/cli/check_test.go`
 - **Estimated scope:** M (3 files)
 
 ---
 
 ### 🏁 Checkpoint 4: Check Mode Operational
-- [ ] Running `driftmock check` against a modified test server accurately detects breaking changes and exits with status 1.
-- [ ] Running against an identical or backward-compatible server exits with status 0.
+- [x] Running `driftmock check` against a modified test server accurately detects breaking changes and exits with status 1.
+- [x] Running against an identical or backward-compatible server exits with status 0.
 
 ---
 
