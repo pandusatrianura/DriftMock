@@ -183,13 +183,13 @@
 ### Task 9: Semantic JSON Tree Diff & Severity Classification
 - **Description:** Implement `internal/diff` to parse baseline stub JSON and live response JSON into generic ASTs, performing recursive traversal to detect missing fields, type changes, nullability shifts, and newly added fields.
 - **Acceptance criteria:**
-  - [ ] Detects missing keys and classifies them as 🔴 `BREAKING`.
-  - [ ] Detects type changes (e.g. number to string, object to array) and classifies them as 🔴 `BREAKING`.
-  - [ ] Detects new keys and classifies them as 🟢 `NON_BREAKING`.
-  - [ ] Ignores JSON key ordering (zero false positives when keys are rearranged).
-  - [ ] Exposes option to ignore volatile timestamp keys (`updated_at`, `timestamp`).
+  - [x] Detects missing keys and classifies them as 🔴 `BREAKING`.
+  - [x] Detects type changes (e.g. number to string, object to array) and classifies them as 🔴 `BREAKING`.
+  - [x] Detects new keys and classifies them as 🟢 `NON_BREAKING`.
+  - [x] Ignores JSON key ordering (zero false positives when keys are rearranged).
+  - [x] Exposes option to ignore volatile timestamp keys (`updated_at`, `timestamp`).
 - **Verification:**
-  - [ ] Table-driven tests pass with extensive diff scenarios: `go test -v -race ./internal/diff/...`
+  - [x] Table-driven tests pass with extensive diff scenarios: `go test -v ./internal/diff/...` (83.5% coverage)
 - **Dependencies:** Task 1
 - **Files likely touched:**
   - `internal/diff/differ.go`
