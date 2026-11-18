@@ -202,11 +202,11 @@
 ### Task 10: Jest/Vitest-Style Colored Terminal Formatter
 - **Description:** Implement `internal/diff/formatter.go` to render diff results in high-contrast ANSI colors with Jest/Vitest conventions (`-` red for removed/breaking, `~` yellow for modified/type mismatch, `+` green for additions).
 - **Acceptance criteria:**
-  - [ ] Produces clean, readable output matching the specification layout.
-  - [ ] Displays route method, path, and file source header for each checked stub.
-  - [ ] Summarizes total breaking changes, warnings, and non-breaking additions with final status badge.
+  - [x] Produces clean, readable output matching the specification layout.
+  - [x] Displays route method, path, and file source header for each checked stub.
+  - [x] Summarizes total breaking changes, warnings, and non-breaking additions with final status badge.
 - **Verification:**
-  - [ ] Formatter tests pass: `go test -v -race ./internal/diff/ -run TestFormatter`
+  - [x] Formatter tests pass: `go test -v ./internal/diff/ -run TestFormatter` (85.6% coverage)
 - **Dependencies:** Task 9
 - **Files likely touched:**
   - `internal/diff/formatter.go`
