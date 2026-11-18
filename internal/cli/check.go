@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/url"
 	"os"
 	"os/signal"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/pandusatrianura/driftmock/internal/diff"
+	"github.com/pandusatrianura/driftmock/internal/logger"
 	"github.com/pandusatrianura/driftmock/internal/storage"
 	"github.com/spf13/cobra"
 )
@@ -139,6 +141,40 @@ func RunCheck(ctx context.Context, opts CheckOptions, out io.Writer) (bool, erro
 	reports, err := runner.Run(ctx)
 	if err != nil {
 		return false, fmt.Errorf("contract check execution error: %w", err)
+	}
+
+	if logger.IsJSON() {
+		for _, report := range reports {
+			breaking := report.BreakingCount()
+			warnings := report.WarningCount()
+			additions := report.AdditionCount()
+			level := slog.LevelInfo
+			if breaking > 0 {
+				level = slog.LevelError
+			} else if warnings > 0 {
+				level = slog.LevelWarn
+			}
+			slog.Log(ctx, level, "contract drift check result",
+				"method", report.Method,
+				"path", report.Path,
+				"stub_id", report.StubID,
+				"breaking", breaking,
+				"warnings", warnings,
+				"additions", additions,
+			)
+		}
+
+		formatter := diff.NewFormatter()
+		totals := formatter.FormatSummary(io.Discard, reports)
+		slog.Info("contract drift check summary",
+			"endpoints_checked", totals.TotalChecked,
+			"passed", totals.PassedCount,
+			"failed", totals.FailedCount,
+			"breaking", totals.TotalBreaking,
+			"warnings", totals.TotalWarnings,
+			"additions", totals.TotalAdditions,
+		)
+		return totals.TotalBreaking > 0, nil
 	}
 
 	formatter := diff.NewFormatter()

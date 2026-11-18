@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test & Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: true
+
+      - name: Verify Dependencies
+        run: go mod verify
+
+      - name: Run Go Vet
+        run: go vet ./...
+
+      - name: Run Test Suite with Coverage
+        run: go test -v -coverprofile=coverage.out ./...
+
+      - name: Build DriftMock Standalone Binary
+        run: go build -ldflags="-s -w" -o bin/driftmock cmd/driftmock/main.go
+
+      - name: Verify CLI Binary Execution
+        shell: bash
+        run: |
+          ./bin/driftmock* version

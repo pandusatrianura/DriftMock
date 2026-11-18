@@ -227,3 +227,39 @@ func TestReplay_LatencySimulation(t *testing.T) {
 	elapsedFixed := time.Since(start)
 	assert.True(t, elapsedFixed >= 35*time.Millisecond, "fixed delay should sleep at least ~35ms")
 }
+
+func TestReplay_Healthcheck(t *testing.T) {
+	tempDir := t.TempDir()
+	store, err := storage.NewFileStore(tempDir)
+	require.NoError(t, err)
+	seedSampleStubs(t, store)
+
+	replayer, err := proxy.NewReplayer(store, proxy.ReplayOptions{})
+	require.NoError(t, err)
+
+	server := httptest.NewServer(replayer)
+	defer server.Close()
+
+	// 1. Standard /healthz probe
+	resp, err := server.Client().Get(server.URL + "/healthz")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "ok", resp.Header.Get("X-DriftMock-Health"))
+
+	var body map[string]any
+	err = json.NewDecoder(resp.Body).Decode(&body)
+	require.NoError(t, err)
+	assert.Equal(t, "ok", body["status"])
+	assert.Equal(t, "replay", body["mode"])
+	assert.Equal(t, float64(2), body["stubs_count"])
+
+	// 2. Explicit /__driftmock/healthz probe
+	resp2, err := server.Client().Get(server.URL + "/__driftmock/healthz")
+	require.NoError(t, err)
+	defer resp2.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp2.StatusCode)
+	assert.Equal(t, "ok", resp2.Header.Get("X-DriftMock-Health"))
+}

@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pandusatrianura/driftmock/internal/logger"
 	"github.com/spf13/cobra"
 )
 
 var (
-	verbose bool
+	verbose   bool
+	logFormat string
 )
 
 // RootCmd represents the base command when called without any subcommands.
@@ -26,10 +28,14 @@ Modes:
   version - Display version, commit, and build information.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		logger.Init(logFormat, verbose, cmd.ErrOrStderr())
+	},
 }
 
 func init() {
 	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose debug logging")
+	RootCmd.PersistentFlags().StringVar(&logFormat, "log-format", "text", "log output format: text or json")
 }
 
 // Execute runs the root Cobra CLI command.

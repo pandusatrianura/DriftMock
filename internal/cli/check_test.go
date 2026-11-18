@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/pandusatrianura/driftmock/internal/cli"
+	"github.com/pandusatrianura/driftmock/internal/logger"
 	"github.com/pandusatrianura/driftmock/internal/model"
 	"github.com/pandusatrianura/driftmock/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -191,4 +192,57 @@ func TestRunCheck_EmptyStubs(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, hasBreaking)
 	assert.Contains(t, buf.String(), "No stubs found")
+}
+
+func TestRunCheck_JSONFormat(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"id":   101,
+			"name": "Pandu",
+		})
+	}))
+	defer server.Close()
+
+	tempDir := t.TempDir()
+	store, err := storage.NewFileStore(tempDir)
+	require.NoError(t, err)
+
+	stub := &model.Stub{
+		ID: "GET_api_v1_profile",
+		Request: model.RequestPattern{
+			Method:         "GET",
+			Path:           "/api/v1/profile",
+			NormalizedPath: "/api/v1/profile",
+		},
+		Response: model.ResponsePattern{
+			StatusCode: 200,
+			Body: map[string]any{
+				"id":   101,
+				"name": "Pandu",
+			},
+		},
+	}
+	_, err = store.Save(stub)
+	require.NoError(t, err)
+
+	logBuf := &bytes.Buffer{}
+	logger.Init("json", false, logBuf)
+	defer logger.SetJSONForTesting(false)
+
+	opts := cli.CheckOptions{
+		Target:   server.URL,
+		StubsDir: tempDir,
+		Strict:   true,
+	}
+
+	buf := bytes.NewBuffer(nil)
+	hasBreaking, err := cli.RunCheck(context.Background(), opts, buf)
+	require.NoError(t, err)
+	assert.False(t, hasBreaking)
+
+	logOutput := logBuf.String()
+	assert.Contains(t, logOutput, "contract drift check result")
+	assert.Contains(t, logOutput, "contract drift check summary")
 }

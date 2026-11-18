@@ -77,6 +77,18 @@ func (m *Matcher) Register(stub *model.Stub) {
 	}
 }
 
+// HasExact checks whether an exact stub is registered for the specified request.
+func (m *Matcher) HasExact(method, rawPath string, query url.Values) bool {
+	if m == nil {
+		return false
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	exactKey := BuildExactKey(method, rawPath, query)
+	_, found := m.exactMap[exactKey]
+	return found
+}
+
 // RegisterAll registers a collection of stubs into the matcher.
 func (m *Matcher) RegisterAll(stubs []*model.Stub) {
 	for _, stub := range stubs {

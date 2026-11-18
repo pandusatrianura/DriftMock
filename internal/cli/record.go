@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/pandusatrianura/driftmock/internal/logger"
 	"github.com/pandusatrianura/driftmock/internal/model"
 	"github.com/pandusatrianura/driftmock/internal/proxy"
 	"github.com/pandusatrianura/driftmock/internal/sanitizer"
@@ -117,6 +119,17 @@ func RunRecord(ctx context.Context, opts RecordOptions, out io.Writer) error {
 	red := color.New(color.FgRed, color.Bold).SprintFunc()
 
 	recorder.OnStubSaved = func(stub *model.Stub, filePath string) {
+		if logger.IsJSON() {
+			slog.Info("recorded stub",
+				"method", stub.Request.Method,
+				"path", stub.Request.Path,
+				"status", stub.Response.StatusCode,
+				"file", filepath.Base(filePath),
+				"latency_ms", stub.Response.LatencyMs,
+			)
+			return
+		}
+
 		statusStr := fmt.Sprintf("%d", stub.Response.StatusCode)
 		if stub.Response.StatusCode >= 200 && stub.Response.StatusCode < 300 {
 			statusStr = green(statusStr)
@@ -137,6 +150,10 @@ func RunRecord(ctx context.Context, opts RecordOptions, out io.Writer) error {
 	}
 
 	recorder.OnError = func(err error) {
+		if logger.IsJSON() {
+			slog.Error("proxy error", "error", err)
+			return
+		}
 		fmt.Fprintf(out, "[%s] %v\n", red("PROXY ERROR"), err)
 	}
 
@@ -146,15 +163,23 @@ func RunRecord(ctx context.Context, opts RecordOptions, out io.Writer) error {
 		Handler: recorder,
 	}
 
-	// Print startup banner
-	fmt.Fprintf(out, "\n%s\n", cyan("╔══════════════════════════════════════════════════════════════╗"))
-	fmt.Fprintf(out, "%s\n", cyan("║             DriftMock Traffic Recorder (Active)              ║"))
-	fmt.Fprintf(out, "%s\n\n", cyan("╚══════════════════════════════════════════════════════════════╝"))
-	fmt.Fprintf(out, "  %s  %s\n", yellow("Target Upstream:"), targetURL.String())
-	fmt.Fprintf(out, "  %s  http://localhost:%d\n", yellow("Proxy Listening:"), opts.Port)
-	fmt.Fprintf(out, "  %s  %s\n\n", yellow("Stubs Output:   "), store.StubsDir())
-	fmt.Fprintf(out, "Point your frontend API client to %s to begin recording.\n", green(fmt.Sprintf("http://localhost:%d", opts.Port)))
-	fmt.Fprintf(out, "Press %s to stop recording and exit.\n\n", yellow("Ctrl+C"))
+	if logger.IsJSON() {
+		slog.Info("starting driftmock recorder",
+			"target", targetURL.String(),
+			"port", opts.Port,
+			"out", store.StubsDir(),
+		)
+	} else {
+		// Print startup banner
+		fmt.Fprintf(out, "\n%s\n", cyan("╔══════════════════════════════════════════════════════════════╗"))
+		fmt.Fprintf(out, "%s\n", cyan("║             DriftMock Traffic Recorder (Active)              ║"))
+		fmt.Fprintf(out, "%s\n\n", cyan("╚══════════════════════════════════════════════════════════════╝"))
+		fmt.Fprintf(out, "  %s  %s\n", yellow("Target Upstream:"), targetURL.String())
+		fmt.Fprintf(out, "  %s  http://localhost:%d\n", yellow("Proxy Listening:"), opts.Port)
+		fmt.Fprintf(out, "  %s  %s\n\n", yellow("Stubs Output:   "), store.StubsDir())
+		fmt.Fprintf(out, "Point your frontend API client to %s to begin recording.\n", green(fmt.Sprintf("http://localhost:%d", opts.Port)))
+		fmt.Fprintf(out, "Press %s to stop recording and exit.\n\n", yellow("Ctrl+C"))
+	}
 
 	serverErrChan := make(chan error, 1)
 	go func() {
@@ -167,13 +192,21 @@ func RunRecord(ctx context.Context, opts RecordOptions, out io.Writer) error {
 	case err := <-serverErrChan:
 		return fmt.Errorf("proxy server error: %w", err)
 	case <-ctx.Done():
-		fmt.Fprintf(out, "\n%s Shutting down recording proxy gracefully...\n", yellow("[STOPPING]"))
+		if logger.IsJSON() {
+			slog.Info("shutting down recording proxy gracefully")
+		} else {
+			fmt.Fprintf(out, "\n%s Shutting down recording proxy gracefully...\n", yellow("[STOPPING]"))
+		}
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("error during server shutdown: %w", err)
 		}
-		fmt.Fprintf(out, "%s Proxy stopped. Recorded stubs are saved in %s\n", green("[DONE]"), store.StubsDir())
+		if logger.IsJSON() {
+			slog.Info("proxy stopped", "stubs_dir", store.StubsDir())
+		} else {
+			fmt.Fprintf(out, "%s Proxy stopped. Recorded stubs are saved in %s\n", green("[DONE]"), store.StubsDir())
+		}
 		return nil
 	}
 }

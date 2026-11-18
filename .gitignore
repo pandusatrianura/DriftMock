@@ -33,7 +33,10 @@ Thumbs.db
 .cursor/
 .factory/
 .gemini/
-.github/
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/ci.yml
 .impeccable/
 .kilocode/
 .kiro/

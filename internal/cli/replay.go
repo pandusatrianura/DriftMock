@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/pandusatrianura/driftmock/internal/logger"
 	"github.com/pandusatrianura/driftmock/internal/matcher"
 	"github.com/pandusatrianura/driftmock/internal/model"
 	"github.com/pandusatrianura/driftmock/internal/proxy"
@@ -116,6 +118,17 @@ func RunReplay(ctx context.Context, opts ReplayCommandOptions, out io.Writer) er
 	magenta := color.New(color.FgMagenta).SprintFunc()
 
 	replayer.OnMatch = func(stub *model.Stub, tier matcher.MatchTier, r *http.Request) {
+		if logger.IsJSON() {
+			slog.Info("replayed mock",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"status", stub.Response.StatusCode,
+				"tier", string(tier),
+				"stub_id", stub.ID,
+			)
+			return
+		}
+
 		tierBadge := string(tier)
 		if tier == matcher.MatchTierExact {
 			tierBadge = green(tierBadge)
@@ -136,6 +149,14 @@ func RunReplay(ctx context.Context, opts ReplayCommandOptions, out io.Writer) er
 	}
 
 	replayer.OnMiss = func(r *http.Request) {
+		if logger.IsJSON() {
+			slog.Warn("mock not found",
+				"method", r.Method,
+				"path", r.URL.Path,
+			)
+			return
+		}
+
 		fmt.Fprintf(out, "[%s] %-6s %-30s 404 (No matching stub)\n",
 			red("MISS"),
 			cyan(r.Method),
@@ -159,28 +180,37 @@ func RunReplay(ctx context.Context, opts ReplayCommandOptions, out io.Writer) er
 
 	routes := replayer.Matcher().RegisteredRoutes()
 
-	// Print startup banner
-	fmt.Fprintf(out, "\n%s\n", cyan("╔══════════════════════════════════════════════════════════════╗"))
-	fmt.Fprintf(out, "%s\n", cyan("║              DriftMock Offline Replay (Active)               ║"))
-	fmt.Fprintf(out, "%s\n\n", cyan("╚══════════════════════════════════════════════════════════════╝"))
-	fmt.Fprintf(out, "  %s  http://localhost:%d\n", yellow("Mock Server:   "), opts.Port)
-	fmt.Fprintf(out, "  %s  %s (%d stubs loaded)\n", yellow("Stubs Source:  "), store.StubsDir(), len(routes))
-	fmt.Fprintf(out, "  %s  %s\n", yellow("Latency Mode:  "), latencyDesc)
-	fmt.Fprintf(out, "  %s  Permissive (All origins allowed)\n\n", yellow("CORS Handling: "))
-
-	if len(routes) > 0 {
-		fmt.Fprintf(out, "%s\n", yellow("Registered Routes:"))
-		for _, route := range routes {
-			fmt.Fprintf(out, "  • %s\n", route)
-		}
-		fmt.Fprintln(out)
+	if logger.IsJSON() {
+		slog.Info("starting driftmock replayer",
+			"port", opts.Port,
+			"stubs_dir", store.StubsDir(),
+			"stubs_count", len(routes),
+			"latency_mode", latencyDesc,
+		)
 	} else {
-		fmt.Fprintf(out, "%s No stubs found in '%s'. Run 'driftmock record' first or add .json stubs.\n\n",
-			yellow("Notice:"), store.StubsDir())
-	}
+		// Print startup banner
+		fmt.Fprintf(out, "\n%s\n", cyan("╔══════════════════════════════════════════════════════════════╗"))
+		fmt.Fprintf(out, "%s\n", cyan("║              DriftMock Offline Replay (Active)               ║"))
+		fmt.Fprintf(out, "%s\n\n", cyan("╚══════════════════════════════════════════════════════════════╝"))
+		fmt.Fprintf(out, "  %s  http://localhost:%d\n", yellow("Mock Server:   "), opts.Port)
+		fmt.Fprintf(out, "  %s  %s (%d stubs loaded)\n", yellow("Stubs Source:  "), store.StubsDir(), len(routes))
+		fmt.Fprintf(out, "  %s  %s\n", yellow("Latency Mode:  "), latencyDesc)
+		fmt.Fprintf(out, "  %s  Permissive (All origins allowed)\n\n", yellow("CORS Handling: "))
 
-	fmt.Fprintf(out, "Point your frontend API client to %s to use offline mock.\n", green(fmt.Sprintf("http://localhost:%d", opts.Port)))
-	fmt.Fprintf(out, "Press %s to stop mock server and exit.\n\n", yellow("Ctrl+C"))
+		if len(routes) > 0 {
+			fmt.Fprintf(out, "%s\n", yellow("Registered Routes:"))
+			for _, route := range routes {
+				fmt.Fprintf(out, "  • %s\n", route)
+			}
+			fmt.Fprintln(out)
+		} else {
+			fmt.Fprintf(out, "%s No stubs found in '%s'. Run 'driftmock record' first or add .json stubs.\n\n",
+				yellow("Notice:"), store.StubsDir())
+		}
+
+		fmt.Fprintf(out, "Point your frontend API client to %s to use offline mock.\n", green(fmt.Sprintf("http://localhost:%d", opts.Port)))
+		fmt.Fprintf(out, "Press %s to stop mock server and exit.\n\n", yellow("Ctrl+C"))
+	}
 
 	serverErrChan := make(chan error, 1)
 	go func() {
@@ -193,13 +223,21 @@ func RunReplay(ctx context.Context, opts ReplayCommandOptions, out io.Writer) er
 	case err := <-serverErrChan:
 		return fmt.Errorf("mock server error: %w", err)
 	case <-ctx.Done():
-		fmt.Fprintf(out, "\n%s Shutting down mock server gracefully...\n", yellow("[STOPPING]"))
+		if logger.IsJSON() {
+			slog.Info("shutting down mock server gracefully")
+		} else {
+			fmt.Fprintf(out, "\n%s Shutting down mock server gracefully...\n", yellow("[STOPPING]"))
+		}
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("error during server shutdown: %w", err)
 		}
-		fmt.Fprintf(out, "%s Mock server stopped.\n", green("[DONE]"))
+		if logger.IsJSON() {
+			slog.Info("mock server stopped")
+		} else {
+			fmt.Fprintf(out, "%s Mock server stopped.\n", green("[DONE]"))
+		}
 		return nil
 	}
 }

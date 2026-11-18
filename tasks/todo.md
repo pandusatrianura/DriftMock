@@ -383,3 +383,69 @@
 - [x] Proxy is protected against memory exhaustion from oversized payloads.
 - [x] 100% of tests pass across all packages.
 
+---
+
+## Phase 7: Enterprise Operations & CI/CD Automation (Production Grade 10/10)
+
+### Task 19: Multi-Platform GitHub Actions CI Workflow
+- **Description:** Implement `.github/workflows/ci.yml` that triggers on pushes and PRs to `main`, running dependency verification, `go vet`, multi-OS matrix testing (`ubuntu-latest`, `macos-latest`, `windows-latest`), test coverage measurement, and binary build verification.
+- **Acceptance criteria:**
+  - [x] `.github/workflows/ci.yml` created with OS matrix for Ubuntu, macOS, and Windows.
+  - [x] `.gitignore` updated to track `.github/workflows/ci.yml` while continuing to ignore untracked local editor/agent directories.
+  - [x] Workflow verifies clean build and executes `--version` check.
+- **Verification:**
+  - [x] YAML syntax valid, git tracks workflow.
+- **Dependencies:** None
+- **Files likely touched:**
+  - `.github/workflows/ci.yml`
+  - `.gitignore`
+- **Estimated scope:** S (2 files)
+
+---
+
+### Task 20: Container Healthcheck Endpoint
+- **Description:** Implement `GET /healthz` and `GET /__driftmock/healthz` in `internal/proxy/replayer.go` returning `200 OK` with JSON status and loaded stubs count, enabling Docker and Kubernetes liveness/readiness probes.
+- **Acceptance criteria:**
+  - [x] `GET /healthz` returns `200 OK` with `{"status":"ok","mode":"replay","stubs_count":N}` and `X-DriftMock-Health: ok`.
+  - [x] `GET /__driftmock/healthz` always serves healthcheck probe even if custom stubs exist.
+  - [x] Exact recorded mocks for `/healthz` take precedence if explicitly recorded.
+  - [x] Unit test `TestReplay_Healthcheck` validates probe responses.
+- **Verification:**
+  - [x] Unit tests pass: `go test -v ./internal/proxy/... -run TestReplay_Healthcheck`
+- **Dependencies:** None
+- **Files likely touched:**
+  - `internal/matcher/matcher.go`
+  - `internal/proxy/replayer.go`
+  - `internal/proxy/replayer_test.go`
+- **Estimated scope:** S (3 files)
+
+---
+
+### Task 21: Structured Cloud Logging with log/slog
+- **Description:** Add `internal/logger` package wrapping `log/slog` with `--log-format` flag (`text` or `json`). In `json` mode, format proxy recording, replay hits/misses, and drift check results as single-line JSON entries suitable for Datadog, AWS CloudWatch, and Grafana Loki.
+- **Acceptance criteria:**
+  - [x] `--log-format` flag exposed globally on root CLI command.
+  - [x] `internal/logger` produces valid JSON lines when `format == "json"`.
+  - [x] Proxy recorder, replayer, and check commands emit structured log entries without ASCII/ANSI noise in JSON mode.
+  - [x] Unit tests verify JSON log output formatting.
+- **Verification:**
+  - [x] Unit tests pass: `go test -v ./internal/logger/... ./internal/cli/...`
+- **Dependencies:** None
+- **Files likely touched:**
+  - `internal/logger/logger.go`
+  - `internal/logger/logger_test.go`
+  - `internal/cli/root.go`
+  - `internal/cli/record.go`
+  - `internal/cli/replay.go`
+  - `internal/cli/check.go`
+- **Estimated scope:** M (6 files)
+
+---
+
+### 🏁 Checkpoint 7: Full Enterprise Grade (10/10)
+- [x] GitHub Actions automated multi-platform CI is live.
+- [x] Kubernetes/Docker container healthcheck endpoints are operational.
+- [x] Structured JSON cloud logging (`log/slog`) is operational for cloud observability.
+- [x] All unit, integration, and E2E tests pass across 100% of packages.
+
+

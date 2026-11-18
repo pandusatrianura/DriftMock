@@ -22,12 +22,13 @@ type ReplayOptions struct {
 
 // Replayer manages loading stubs, deterministic request matching, and mock response rendering.
 type Replayer struct {
-	mu      sync.RWMutex
-	matcher *matcher.Matcher
-	store   storage.Store
-	options ReplayOptions
-	OnMatch func(stub *model.Stub, tier matcher.MatchTier, r *http.Request)
-	OnMiss  func(r *http.Request)
+	mu        sync.RWMutex
+	matcher   *matcher.Matcher
+	store     storage.Store
+	options   ReplayOptions
+	startTime time.Time
+	OnMatch   func(stub *model.Stub, tier matcher.MatchTier, r *http.Request)
+	OnMiss    func(r *http.Request)
 }
 
 // NewReplayer initializes a Replayer, scanning and registering all stubs from storage.
@@ -37,8 +38,9 @@ func NewReplayer(store storage.Store, opts ReplayOptions) (*Replayer, error) {
 	}
 
 	replayer := &Replayer{
-		store:   store,
-		options: opts,
+		store:     store,
+		options:   opts,
+		startTime: time.Now(),
 	}
 
 	if err := replayer.Reload(); err != nil {
@@ -74,7 +76,25 @@ func (rp *Replayer) Matcher() *matcher.Matcher {
 
 // ServeHTTP handles incoming client requests and returns matched mock responses.
 func (rp *Replayer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// 1. Handle CORS preflight and headers
+	// 1. Healthcheck endpoint for container orchestration & readiness probes
+	if r.URL.Path == "/__driftmock/healthz" || (r.URL.Path == "/healthz" && (rp.matcher == nil || !rp.matcher.HasExact(r.Method, r.URL.Path, r.URL.Query()))) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-DriftMock-Health", "ok")
+		w.WriteHeader(http.StatusOK)
+
+		count := 0
+		if rp.matcher != nil {
+			count = rp.matcher.Count()
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"status":      "ok",
+			"mode":        "replay",
+			"stubs_count": count,
+		})
+		return
+	}
+
+	// 2. Handle CORS preflight and headers
 	if HandleCORS(w, r) {
 		return
 	}
