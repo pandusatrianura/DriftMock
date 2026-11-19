@@ -178,6 +178,54 @@ All 7 core packages maintain **>80% test coverage** with comprehensive E2E lifec
 
 ---
 
+## 🐳 Docker & Container Deployment
+
+DriftMock includes a minimal multi-stage `Dockerfile` and `docker-compose.yml` optimized for cloud environments and CI service containers:
+
+### Running with Docker Compose
+```bash
+# Start DriftMock replay service with live-mounted stubs
+docker compose up -d
+
+# Check service health
+curl http://localhost:8080/healthz
+```
+
+### Building & Running Standalone Container
+```bash
+# Build minimal image (<15MB, non-root user 10001)
+docker build -t driftmock:latest .
+
+# Run offline mock replay server
+docker run -d --name driftmock \
+  -p 8080:8080 \
+  -v $(pwd)/.drift:/app/.drift \
+  -e DRIFTMOCK_LOG_FORMAT=json \
+  driftmock:latest
+```
+
+---
+
+## ⚙️ Environment Variables (12-Factor App)
+
+All CLI options can be configured via environment variables, ideal for Kubernetes Pods and containerized pipelines:
+
+| Environment Variable | CLI Equivalent | Default | Description |
+|---|---|---|---|
+| `DRIFTMOCK_PORT` | `-p, --port` | `8080` | Local HTTP port for proxy and mock server. |
+| `DRIFTMOCK_TARGET` | `-t, --target` | `""` | Target backend URL (for `record` and `check`). |
+| `DRIFTMOCK_STUBS_DIR` | `-s, --stubs` / `-o, --out` | `./.drift` | Directory where JSON stubs are read/saved. |
+| `DRIFTMOCK_LOG_FORMAT` | `--log-format` | `text` | Log format: `text` or `json`. |
+| `DRIFTMOCK_VERBOSE` | `-v, --verbose` | `false` | Enable verbose/debug logging (`true`/`false`). |
+| `DRIFTMOCK_SIMULATE_DELAY` | `--simulate-delay` | `false` | Replay original recorded request latencies. |
+| `DRIFTMOCK_LATENCY_MS` | `--latency` | `0` | Enforce fixed simulated latency in milliseconds. |
+| `DRIFTMOCK_STRICT` | `--strict` | `true` | Exit with code `1` if breaking drift is detected. |
+| `DRIFTMOCK_TIMEOUT` | `--timeout` | `10` | HTTP request timeout per endpoint in seconds. |
+
+*Note: CLI flags take precedence over environment variables.*
+
+---
+
 ## 📄 License
 
 MIT License © 2026 Pandu Satria & Contributors.

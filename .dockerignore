@@ -1,0 +1,17 @@
+# Git and CI
+.git
+.github
+.agents
+.agentwork
+.gemini
+
+# Build and test artifacts
+bin/
+tmp/
+*.out
+coverage.html
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db

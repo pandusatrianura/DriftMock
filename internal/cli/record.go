@@ -43,7 +43,17 @@ redacts sensitive authentication headers and JSON keys, and saves stubs to disk.
   driftmock record --target https://api.staging.example.com --port 8080 --out ./.drift
 
   # Short flags
-  driftmock record -t https://api.staging.example.com -p 8080`,
+  driftmock record -t https://api.staging.example.com -p 8080
+
+  # Via environment variables
+  DRIFTMOCK_TARGET=https://api.staging.example.com driftmock record`,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			applyRecordEnvVars(cmd, &recordOpts)
+			if strings.TrimSpace(recordOpts.Target) == "" {
+				return fmt.Errorf("target URL is required (use --target or -t, or set DRIFTMOCK_TARGET)")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer cancel()
@@ -51,11 +61,10 @@ redacts sensitive authentication headers and JSON keys, and saves stubs to disk.
 		},
 	}
 
-	cmd.Flags().StringVarP(&recordOpts.Target, "target", "t", "", "target staging/development backend base URL (required)")
-	cmd.Flags().IntVarP(&recordOpts.Port, "port", "p", 8080, "local port for the reverse proxy to listen on")
-	cmd.Flags().StringVarP(&recordOpts.OutDir, "out", "o", "./.drift", "directory where recorded stubs will be stored")
+	cmd.Flags().StringVarP(&recordOpts.Target, "target", "t", "", "target staging/development backend base URL (required or set DRIFTMOCK_TARGET)")
+	cmd.Flags().IntVarP(&recordOpts.Port, "port", "p", 8080, "local port for the reverse proxy to listen on (or set DRIFTMOCK_PORT)")
+	cmd.Flags().StringVarP(&recordOpts.OutDir, "out", "o", "./.drift", "directory where recorded stubs will be stored (or set DRIFTMOCK_STUBS_DIR)")
 
-	_ = cmd.MarkFlagRequired("target")
 	return cmd
 }
 
@@ -66,7 +75,7 @@ func init() {
 // ValidateRecordOptions checks whether target URL and port parameters are valid.
 func ValidateRecordOptions(opts *RecordOptions) (*url.URL, error) {
 	if strings.TrimSpace(opts.Target) == "" {
-		return nil, fmt.Errorf("target URL is required (use --target or -t)")
+		return nil, fmt.Errorf("target URL is required (use --target or -t, or set DRIFTMOCK_TARGET)")
 	}
 
 	parsed, err := url.Parse(opts.Target)

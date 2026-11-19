@@ -45,11 +45,18 @@ permissive CORS headers for web browsers, and optional latency simulation.`,
   # Custom port and stubs directory
   driftmock replay --stubs ./mocks --port 3000
 
+  # Via environment variables
+  DRIFTMOCK_PORT=3000 DRIFTMOCK_STUBS_DIR=./mocks driftmock replay
+
   # Simulate original recorded network latency
   driftmock replay --simulate-delay
 
   # Enforce fixed simulated latency of 250ms
   driftmock replay --latency 250`,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			applyReplayEnvVars(cmd, &replayOpts)
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer cancel()
@@ -57,10 +64,10 @@ permissive CORS headers for web browsers, and optional latency simulation.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&replayOpts.StubsDir, "stubs", "s", "./.drift", "directory where recorded stubs are stored")
-	cmd.Flags().IntVarP(&replayOpts.Port, "port", "p", 8080, "local port for the mock server to listen on")
-	cmd.Flags().BoolVar(&replayOpts.SimulateDelay, "simulate-delay", false, "simulate recorded latency from each stub")
-	cmd.Flags().IntVar(&replayOpts.LatencyMs, "latency", 0, "fixed latency simulation in milliseconds (overrides recorded latency)")
+	cmd.Flags().StringVarP(&replayOpts.StubsDir, "stubs", "s", "./.drift", "directory where recorded stubs are stored (or set DRIFTMOCK_STUBS_DIR)")
+	cmd.Flags().IntVarP(&replayOpts.Port, "port", "p", 8080, "local port for the mock server to listen on (or set DRIFTMOCK_PORT)")
+	cmd.Flags().BoolVar(&replayOpts.SimulateDelay, "simulate-delay", false, "simulate recorded latency from each stub (or set DRIFTMOCK_SIMULATE_DELAY)")
+	cmd.Flags().IntVar(&replayOpts.LatencyMs, "latency", 0, "fixed latency simulation in milliseconds (or set DRIFTMOCK_LATENCY_MS)")
 
 	return cmd
 }

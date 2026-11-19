@@ -29,6 +29,7 @@ Modes:
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		applyGlobalEnvVars(cmd)
 		logger.Init(logFormat, verbose, cmd.ErrOrStderr())
 	},
 }

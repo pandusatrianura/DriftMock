@@ -1,0 +1,22 @@
+services:
+  driftmock:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: driftmock
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - DRIFTMOCK_PORT=8080
+      - DRIFTMOCK_STUBS_DIR=/app/.drift
+      - DRIFTMOCK_LOG_FORMAT=json
+      - DRIFTMOCK_VERBOSE=false
+    volumes:
+      - ./.drift:/app/.drift
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 3s

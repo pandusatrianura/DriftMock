@@ -43,8 +43,18 @@ removed fields, and backward-compatible additions.`,
   # Run drift check against custom stubs directory
   driftmock check -t https://api.staging.example.com -s ./mocks
 
+  # Via environment variables
+  DRIFTMOCK_TARGET=https://api.staging.example.com driftmock check
+
   # Non-strict mode (exits 0 even if breaking changes exist)
   driftmock check -t https://api.staging.example.com --strict=false`,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			applyCheckEnvVars(cmd, &checkOpts)
+			if strings.TrimSpace(checkOpts.Target) == "" {
+				return fmt.Errorf("target URL is required (use --target or -t, or set DRIFTMOCK_TARGET)")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer cancel()
@@ -61,13 +71,12 @@ removed fields, and backward-compatible additions.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&checkOpts.Target, "target", "t", "", "target live staging/development backend base URL (required)")
-	cmd.Flags().StringVarP(&checkOpts.StubsDir, "stubs", "s", "./.drift", "directory where recorded stubs are stored")
-	cmd.Flags().BoolVar(&checkOpts.Strict, "strict", true, "fail build with exit code 1 if breaking changes are detected")
-	cmd.Flags().BoolVar(&checkOpts.IgnoreVolatile, "ignore-volatile", true, "ignore volatile timestamp fields (updated_at, timestamp)")
-	cmd.Flags().IntVar(&checkOpts.TimeoutSeconds, "timeout", 10, "HTTP request timeout per endpoint in seconds")
+	cmd.Flags().StringVarP(&checkOpts.Target, "target", "t", "", "target live staging/development backend base URL (required or set DRIFTMOCK_TARGET)")
+	cmd.Flags().StringVarP(&checkOpts.StubsDir, "stubs", "s", "./.drift", "directory where recorded stubs are stored (or set DRIFTMOCK_STUBS_DIR)")
+	cmd.Flags().BoolVar(&checkOpts.Strict, "strict", true, "fail build with exit code 1 if breaking changes are detected (or set DRIFTMOCK_STRICT)")
+	cmd.Flags().BoolVar(&checkOpts.IgnoreVolatile, "ignore-volatile", true, "ignore volatile timestamp fields (or set DRIFTMOCK_IGNORE_VOLATILE)")
+	cmd.Flags().IntVar(&checkOpts.TimeoutSeconds, "timeout", 10, "HTTP request timeout per endpoint in seconds (or set DRIFTMOCK_TIMEOUT)")
 
-	_ = cmd.MarkFlagRequired("target")
 	return cmd
 }
 
@@ -78,7 +87,7 @@ func init() {
 // ValidateCheckOptions verifies target URL and configuration parameters.
 func ValidateCheckOptions(opts *CheckOptions) (*url.URL, error) {
 	if strings.TrimSpace(opts.Target) == "" {
-		return nil, fmt.Errorf("target URL is required (use --target or -t)")
+		return nil, fmt.Errorf("target URL is required (use --target or -t, or set DRIFTMOCK_TARGET)")
 	}
 
 	parsed, err := url.Parse(opts.Target)
